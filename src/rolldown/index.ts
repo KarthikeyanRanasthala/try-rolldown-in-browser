@@ -4,6 +4,8 @@ import {
 } from "@rolldown/browser";
 import {
   viteAssetPlugin,
+  viteCSSPlugin,
+  viteCSSPostPlugin,
   viteHtmlPlugin,
 } from "@rolldown/browser/experimental";
 import { virtualFs, type VirtualFsOptions } from "./virtual-fs-plugin";
@@ -46,15 +48,30 @@ export const defineConfig = (config: ExtendedRolldownOptions) => {
         isSkipAssets: false,
         assetsInclude: [] as Array<string | RegExp>,
       }),
+      viteCSSPlugin({
+        ...basePluginConfig,
+        // 2nd param is actually CSS content (not importer path as TS types suggest)
+        compileCSS: async (_url, cssContent) => ({ code: cssContent }),
+        // Required by binding, but unused since compileCSS doesn't use the resolver
+        resolveUrl: async () => undefined,
+      }),
+      viteCSSPostPlugin({
+        ...basePluginConfig,
+        isWorker: false,
+        isClient: true,
+        cssCodeSplit: true,
+        sourcemap: false,
+        assetsDir: "",
+      }),
       viteHtmlPlugin({
         ...basePluginConfig,
-        cssCodeSplit: false,
+        cssCodeSplit: true,
         modulePreload: false,
         preHooks: [],
         normalHooks: [],
         postHooks: [],
         applyHtmlTransforms: async (html: string): Promise<string> => html,
-        // @ts-expect-error - says its optional but it is required
+        // @ts-expect-error - required by Rust binding but not in TS types
         transformIndexHtml: async (html: string): Promise<string> => html,
         setModuleSideEffects: (): void => {},
       }),
