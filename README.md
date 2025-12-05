@@ -2,6 +2,8 @@
 
 A browser-based playground for [Rolldown](https://rolldown.rs), the Rust-based JavaScript bundler. Use NPM packages, write code, see it bundled in real-time, and preview the output.
 
+**[Live Demo →](https://try-rolldown-in-browser.vercel.app)**
+
 ## Features
 
 - Monaco editor for code editing
