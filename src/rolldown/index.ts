@@ -6,8 +6,23 @@ import {
   viteAssetPlugin,
   viteHtmlPlugin,
 } from "@rolldown/browser/experimental";
+import { virtualFs, type VirtualFsOptions } from "./virtual-fs-plugin";
+import {
+  httpImportEsm,
+  type HttpImportEsmOptions,
+} from "./http-import-esm-plugin";
 
-export const defineConfig = (config: RolldownOptions) => {
+interface ExtendedRolldownOptions extends RolldownOptions {
+  virtualFsPluginOptions?: VirtualFsOptions;
+  httpImportEsmPluginOptions?: HttpImportEsmOptions;
+}
+
+export const defineConfig = (config: ExtendedRolldownOptions) => {
+  const {
+    virtualFsPluginOptions,
+    httpImportEsmPluginOptions,
+    ...rolldownConfig
+  } = config;
   const root = "/";
 
   const basePluginConfig = {
@@ -21,8 +36,10 @@ export const defineConfig = (config: RolldownOptions) => {
   };
 
   return _defineConfig({
-    ...config,
+    ...rolldownConfig,
     plugins: [
+      virtualFs(virtualFsPluginOptions),
+      httpImportEsm(httpImportEsmPluginOptions),
       viteAssetPlugin({
         ...basePluginConfig,
         isWorker: false,
@@ -41,7 +58,7 @@ export const defineConfig = (config: RolldownOptions) => {
         transformIndexHtml: async (html: string): Promise<string> => html,
         setModuleSideEffects: (): void => {},
       }),
-      ...(Array.isArray(config.plugins) ? config.plugins : []),
+      ...(Array.isArray(rolldownConfig.plugins) ? rolldownConfig.plugins : []),
     ],
   });
 };
