@@ -1,73 +1,61 @@
-# React + TypeScript + Vite
+# Try Rolldown in Browser
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A browser-based playground for [Rolldown](https://rolldown.rs), the Rust-based JavaScript bundler. Use NPM packages, write code, see it bundled in real-time, and preview the output.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Monaco editor for code editing
+- Real-time bundling with Rolldown WASM
+- Live preview of bundled output
+- Support for JSX/TSX, CSS, and HTML
+- Bare npm imports resolved via ESM CDN
 
-## React Compiler
+## HTTP Import ESM Plugin
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The playground includes a custom Rolldown plugin that resolves bare npm imports to ESM CDN URLs and fetches them at build time. This enables importing any npm package without a `node_modules` directory.
 
 ```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+// These imports just work
+import React from "react";
+import confetti from "canvas-confetti";
 ```
+
+How it works:
+
+1. **Resolve**: Bare imports like `react` are transformed to `https://esm.sh/react@latest`
+2. **Fetch**: The plugin fetches the ESM bundle from the CDN
+3. **Transitive deps**: The CDN handles transitive dependencies, returning fully bundled ESM
+
+The plugin supports:
+
+- Scoped packages (`@org/package`)
+- Subpath imports (`react-dom/client`)
+- Version pinning via configuration
+- Custom CDN endpoints
+- Dependency overrides for specific packages
+
+See [`src/rolldown/http-import-esm-plugin.ts`](src/rolldown/http-import-esm-plugin.ts) for the implementation.
+
+## Development
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Deployment
+
+Deployed on Vercel with required headers for SharedArrayBuffer support:
+
+- `Cross-Origin-Opener-Policy: same-origin`
+- `Cross-Origin-Embedder-Policy: require-corp`
+
+## Tech Stack
+
+- [Rolldown](https://rolldown.rs) - Rust bundler compiled to WASM
+- [Vite](https://vite.dev) - Dev server and build tool
+- [React](https://react.dev) - UI framework
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) - Code editor
+- [Tailwind CSS](https://tailwindcss.com) - Styling
+- [shadcn/ui](https://ui.shadcn.com) - UI components
+- [esm.sh](https://esm.sh) - ESM CDN for npm packages
