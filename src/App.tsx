@@ -4,6 +4,8 @@ import { defineConfig } from "./rolldown";
 import { InputPanel } from "./components/InputPanel";
 import { OutputPanel } from "./components/OutputPanel";
 import type { SourceFile } from "./types";
+import { Github } from "lucide-react";
+import { Button } from "./components/ui/button";
 
 const defaultFiles: SourceFile[] = [
   {
@@ -193,24 +195,39 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-background">
-      <div className="flex-1 flex flex-col min-h-0 h-1/2 md:h-full">
-        <InputPanel
-          files={inputFiles}
-          activeIndex={activeInputIdx}
-          onSelect={setActiveInputIdx}
-          onAdd={handleAddFile}
-          onDelete={handleDeleteFile}
-          onChange={handleFileChange}
-        />
-      </div>
-      <div className="flex-1 flex flex-col min-h-0 h-1/2 md:h-full">
-        <OutputPanel files={outputFiles} error={error} />
-        {isBuilding && (
-          <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-muted text-muted-foreground text-sm rounded">
-            Building...
-          </div>
-        )}
+    <div className="flex flex-col h-screen bg-background">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-border">
+        <h1 className="text-lg font-semibold">Try Rolldown in Browser</h1>
+        <Button variant="ghost" size="sm" asChild>
+          <a
+            href="https://github.com/KarthikeyanRanasthala/try-rolldown-in-browser"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Github className="h-4 w-4 mr-2" />
+            GitHub
+          </a>
+        </Button>
+      </header>
+      <div className="flex flex-col md:flex-row flex-1 min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 h-1/2 md:h-full">
+          <InputPanel
+            files={inputFiles}
+            activeIndex={activeInputIdx}
+            onSelect={setActiveInputIdx}
+            onAdd={handleAddFile}
+            onDelete={handleDeleteFile}
+            onChange={handleFileChange}
+          />
+        </div>
+        <div className="flex-1 flex flex-col min-h-0 h-1/2 md:h-full">
+          <OutputPanel files={outputFiles} error={error} />
+          {isBuilding && (
+            <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-muted text-muted-foreground text-sm rounded">
+              Building...
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
