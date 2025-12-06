@@ -8,23 +8,22 @@ import {
   viteCSSPostPlugin,
   viteHtmlPlugin,
 } from "@rolldown/browser/experimental";
-import { virtualFs, type VirtualFsOptions } from "./virtual-fs-plugin";
+// @ts-expect-error - internal binding module exports __volume (aliased in vite.config.ts)
+import { __volume } from "@rolldown/browser/binding";
 import {
   httpImportEsm,
   type HttpImportEsmOptions,
 } from "./http-import-esm-plugin";
 
+// Re-export the memfs volume for direct access
+export { __volume };
+
 interface ExtendedRolldownOptions extends RolldownOptions {
-  virtualFsPluginOptions?: VirtualFsOptions;
   httpImportEsmPluginOptions?: HttpImportEsmOptions;
 }
 
 export const defineConfig = (config: ExtendedRolldownOptions) => {
-  const {
-    virtualFsPluginOptions,
-    httpImportEsmPluginOptions,
-    ...rolldownConfig
-  } = config;
+  const { httpImportEsmPluginOptions, ...rolldownConfig } = config;
   const root = "/";
 
   const basePluginConfig = {
@@ -40,7 +39,6 @@ export const defineConfig = (config: ExtendedRolldownOptions) => {
   return _defineConfig({
     ...rolldownConfig,
     plugins: [
-      virtualFs(virtualFsPluginOptions),
       httpImportEsm(httpImportEsmPluginOptions),
       viteAssetPlugin({
         ...basePluginConfig,

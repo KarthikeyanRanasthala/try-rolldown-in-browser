@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import mime from 'mime'
 import type { SourceFile } from '@/types'
 
 interface PreviewProps {
@@ -7,7 +8,6 @@ interface PreviewProps {
 
 export function Preview({ files }: PreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const swRef = useRef<ServiceWorker | null>(null)
   const [swReady, setSwReady] = useState(false)
   const entry = files.find((f) => f.filename.includes('index.html'))
 
@@ -15,31 +15,20 @@ export function Preview({ files }: PreviewProps) {
   useEffect(() => {
     let cancelled = false
 
-    async function setup() {
-      const registration = await navigator.serviceWorker.register(
-        '/preview/service-worker.js',
-        { scope: '/preview/' }
-      )
+    navigator.serviceWorker
+      .register('/preview/service-worker.js', { scope: '/preview/' })
+      .then((registration) => {
+        const sw = registration.active || registration.installing || registration.waiting
+        if (!sw) return
 
-      const sw = registration.active || registration.installing || registration.waiting
-      if (!sw) return
-
-      if (sw.state === 'activated') {
-        if (!cancelled) {
-          swRef.current = sw
-          setSwReady(true)
+        if (sw.state === 'activated') {
+          if (!cancelled) setSwReady(true)
+        } else {
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'activated' && !cancelled) setSwReady(true)
+          })
         }
-      } else {
-        sw.addEventListener('statechange', () => {
-          if (sw.state === 'activated' && !cancelled) {
-            swRef.current = sw
-            setSwReady(true)
-          }
-        })
-      }
-    }
-
-    setup()
+      })
 
     return () => {
       cancelled = true
@@ -48,23 +37,48 @@ export function Preview({ files }: PreviewProps) {
 
   // Update files and reload iframe when files change
   useEffect(() => {
-    if (!swReady || !swRef.current || !entry) return
+    if (!swReady || !entry) return
 
-    const t0 = performance.now()
-    swRef.current.postMessage({
-      type: 'init',
-      files,
-      scope: '/preview/',
-    })
-    console.log(`SW postMessage: ${(performance.now() - t0).toFixed(0)}ms`)
+    const updateCache = async () => {
+      const t0 = performance.now()
+      const cache = await caches.open('preview')
 
-    const iframe = iframeRef.current
-    if (iframe?.contentWindow) {
-      const name = entry.filename.startsWith('/')
-        ? entry.filename.slice(1)
-        : entry.filename
-      iframe.contentWindow.location.href = `/preview/${name}`
+      // Clear old files and add new ones
+      const keys = await cache.keys()
+      await Promise.all(keys.map((key) => cache.delete(key)))
+
+      await Promise.all(
+        files.map((file) => {
+          const filename = file.filename.startsWith('/')
+            ? file.filename.slice(1)
+            : file.filename
+          const url = `/preview/${filename}`
+          const contentType = mime.getType(filename) || 'text/plain'
+
+          return cache.put(
+            url,
+            new Response(file.text, {
+              headers: {
+                'Content-Type': contentType,
+                'Cross-Origin-Embedder-Policy': 'require-corp',
+              },
+            })
+          )
+        })
+      )
+
+      console.log(`Cache API: ${files.length} files, ${(performance.now() - t0).toFixed(1)}ms`)
     }
+
+    updateCache().then(() => {
+      const iframe = iframeRef.current
+      if (iframe?.contentWindow) {
+        const name = entry.filename.startsWith('/')
+          ? entry.filename.slice(1)
+          : entry.filename
+        iframe.contentWindow.location.href = `/preview/${name}`
+      }
+    })
   }, [files, entry, swReady])
 
   if (!entry) {
